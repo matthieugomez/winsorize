@@ -5,6 +5,6 @@ The command `clean` windorizes observations based on 5 times the interquartile
 
 ```
 sysuse nlsw88.dta, clear
-clean hours, p(1 99)
+clean hours, p(1 99) replace
 ```
 

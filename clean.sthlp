@@ -7,7 +7,8 @@
 
 {marker syntax}{...}
 {title:Syntax}
-{cmd:clean} {varlist} {ifin} {cmd:,[} {opt drop replace gen(string)}{cmd:]}
+{cmd:clean} {varlist} {ifin} {cmd:,[} {opt  replace|generate(string) drop percentiles(string)
+by(varlist)}{cmd:]}
 
 
 
