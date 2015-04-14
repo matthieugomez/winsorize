@@ -8,3 +8,8 @@ sysuse nlsw88.dta, clear
 clean hours, p(1 99) replace
 ```
 
+
+## Installation
+```
+net install clean, from(https://github.com/matthieugomez/stata-clean/raw/master/)
+```
