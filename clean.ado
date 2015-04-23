@@ -1,5 +1,6 @@
 program clean, byable(recall)
-syntax varlist [if] [in] [aweight fweight pweight], [GENerate(newvarlist) replace drop by(varname) Percentiles(string)]
+syntax varlist [if] [in] [aweight fweight] [, ///
+GENerate(string) replace drop by(varname) Percentiles(string)]
 
 if ("`weight'"!="") local wt [`weight'`exp']
 
@@ -13,16 +14,16 @@ else{
     local ct1: word count `varlist'
     local ct2: word count `generate'
     if `ct1' != `ct2' {
-       di as err "number of variables in varlist must equal" 
-       di as err "number of variables in generate(newvarlist)"
-       exit 198
-   }
-   else{
-
+     di as err "number of variables in varlist must equal" 
+     di as err "number of variables in generate(newvarlist)"
+     exit 198
+ }
+ else{
     forvalues i = 1/`ct1'{
         gen `:word `i' of `generate'' =  `:word `i' of `varlist''
     }
     local varlist `generate'
+}
 }
 
 
