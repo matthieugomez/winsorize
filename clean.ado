@@ -1,6 +1,6 @@
 program clean, byable(recall)
 syntax varlist [if] [in] [aweight fweight] [, ///
-GENerate(string) replace drop by(varname) Percentiles(string)]
+GENerate(string) replace drop by(varname) bottom(string) top(string)]
 
 if ("`weight'"!="") local wt [`weight'`exp']
 
@@ -14,11 +14,11 @@ else{
     local ct1: word count `varlist'
     local ct2: word count `generate'
     if `ct1' != `ct2' {
-     di as err "number of variables in varlist must equal" 
-     di as err "number of variables in generate(newvarlist)"
-     exit 198
- }
- else{
+       di as err "number of variables in varlist must equal" 
+       di as err "number of variables in generate(newvarlist)"
+       exit 198
+   }
+   else{
     forvalues i = 1/`ct1'{
         gen `:word `i' of `generate'' =  `:word `i' of `varlist''
     }
@@ -30,7 +30,7 @@ else{
 
 
 marksample touse
-tempname max min bottom top top2 bottom2
+tempname max min cutbottom cuttop cuttop2 cutbottom2
 if "`by'"~=""{
     if _rc {
         * by-variable is string => generate a numeric version
@@ -61,48 +61,63 @@ foreach i of numlist 1/`bynum'{
         qui sum `v'  if `touseby'
         scalar `max' = r(max)
         scalar `min' = r(min)
-        if "`options'" ~= "" { 
-            _pctile `v' `wt' if `touseby', `percentiles'
-            scalar `bottom' = r(r1)
-            scalar `top' = r(r2)
+        if "`bottom'`top'" ~= "" { 
+            if "`bottom'" == ""{
+                sum `v'
+                scalar `cutbottom' = r(min)
+                _pctile `v' `wt' if `touseby', p(`top')
+                scalar `cuttop' = r(r1)
+            }
+            else if "`top'" == ""{
+                sum `v'
+                scalar `cuttop' = r(max)
+                _pctile `v' `wt' if `touseby', p(`bottom')
+                scalar `cutbottom' = r(r1)
+            }
+            else{
+
+                _pctile `v' `wt' if `touseby', p(`bottom' `top')
+                scalar `cutbottom' = r(r1)
+                scalar `cuttop' = r(r2)
+            }
         }
         else{
             _pctile `v' `wt' if `touseby', percentiles(25 50 75)
-            scalar `bottom' = r(r2) - 5*(r(r3)-r(r1)) 
-            scalar `top' = r(r2) + 5*(r(r3)-r(r1)) 
+            scalar `cutbottom' = r(r2) - 5*(r(r3)-r(r1)) 
+            scalar `cuttop' = r(r2) + 5*(r(r3)-r(r1)) 
         }
 
-        if "bottom" == "top" {
+        if "`cutbottom'" == "`cuttop'" {
             display as error "bottom limit equals the top limit"
             exit 4
         }
 
-        local bottom2 :  display %12.0g `=`bottom''
-        local top2 : display  %12.0g `=`top''
+        local cutbottom2 :  display %12.0g `=`cutbottom''
+        local cuttop2 : display  %12.0g `=`cuttop''
 
 
-        qui count if `v' < `bottom' & `v' ~= . & `touseby'
+        qui count if `v' < `cutbottom' & `v' ~= . & `touseby'
         local nbottom `=r(N)'
-        display as text "Bottom cutoff :  `bottom2' (`nbottom' observation changed)"
+        display as text "Bottom cutoff :  `cutbottom2' (`nbottom' observation changed)"
 
 
         if "`drop'"==""{
-            qui replace `v' = `bottom' if `v' < `bottom' & `v' ~= . & `touseby'
+            qui replace `v' = `cutbottom' if `v' < `cutbottom' & `v' ~= . & `touseby'
         }
         else if "`drop'" ~= ""{
-            qui replace `v' = . if `v' < `bottom' & `touseby'
+            qui replace `v' = . if `v' < `cutbottom' & `touseby'
         }
 
 
-        qui count if `v' > `top' & `v' ~= . & `touseby'
+        qui count if `v' > `cuttop' & `v' ~= . & `touseby'
         local ntop `=r(N)'
-        display as text "Top cutoff :  `top2' (`ntop' observation changed)"
+        display as text "Top cutoff :  `cuttop2' (`ntop' observation changed)"
 
         if "`drop'"==""{
-            qui replace `v' = `top' if `v' > `top' & `v' ~= . & `touseby'
+            qui replace `v' = `cuttop' if `v' > `cuttop' & `v' ~= . & `touseby'
         }
         else if "`drop'" ~= ""{
-            qui replace `v'=. if `v' > `top' & `touseby'
+            qui replace `v'=. if `v' > `cuttop' & `touseby'
         }
     }
 }
