@@ -14,11 +14,11 @@ else{
     local ct1: word count `varlist'
     local ct2: word count `generate'
     if `ct1' != `ct2' {
-       di as err "number of variables in varlist must equal" 
-       di as err "number of variables in generate(newvarlist)"
-       exit 198
-   }
-   else{
+     di as err "number of variables in varlist must equal" 
+     di as err "number of variables in generate(newvarlist)"
+     exit 198
+ }
+ else{
     forvalues i = 1/`ct1'{
         gen `:word `i' of `generate'' =  `:word `i' of `varlist''
     }
@@ -32,6 +32,7 @@ else{
 marksample touse
 tempname max min cutbottom cuttop cuttop2 cutbottom2
 if "`by'"~=""{
+    cap confirm numeric variable `by'
     if _rc {
         * by-variable is string => generate a numeric version
         tempvar by
@@ -75,7 +76,6 @@ foreach i of numlist 1/`bynum'{
                 scalar `cutbottom' = r(r1)
             }
             else{
-
                 _pctile `v' `wt' if `touseby', p(`bottom' `top')
                 scalar `cutbottom' = r(r1)
                 scalar `cuttop' = r(r2)
@@ -83,6 +83,11 @@ foreach i of numlist 1/`bynum'{
         }
         else{
             _pctile `v' `wt' if `touseby', percentiles(25 50 75)
+            cap assert r(r3) > r(r1)
+            if _rc{
+                display as error "the interquartile of `v' is zero (p25 = p75  = `=r(r1)')"
+                exit
+            }
             scalar `cutbottom' = r(r2) - 5*(r(r3)-r(r1)) 
             scalar `cuttop' = r(r2) + 5*(r(r3)-r(r1)) 
         }
