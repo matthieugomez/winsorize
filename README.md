@@ -11,7 +11,7 @@ clean hours, p(1 99) replace
 
 ## Installation
 ```
-net install clean, from(https://github.com/matthieugomez/stata-clean/raw/master/)
+net install clean, from(https://github.com/matthieugomez/clean.ado/raw/master/)
 ```
 
 If you have a version of Stata < 13, you need to install it manually
