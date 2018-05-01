@@ -1,6 +1,6 @@
 v 3
 d Matthieu Gomez, Princeton University (mattg@princeton.edu)
-p clean CLEAN - clean observations
+p winsorize WINSORIZE - winsorize observations
 
 * l word-to-show path-or-url [description]
 * t: Directories within site:

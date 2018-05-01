@@ -1,17 +1,18 @@
 The command `clean` windorizes observations based on 5 times the interquartile
-
+- with the option `bottom` and `top`, specified percentiles are used instead of five times the interquartile
 - with the option `drop`, outliers are replaced by missing values rather than top coded
-- with the option `p`, specified percentiles are used instead of five times the interquartile
+- Syntax is `winsorize [varlist] [if] [in] [, by(varname) bottom(number) top(number) replace drop]`
 
 ```
 sysuse nlsw88.dta, clear
-clean hours, p(1 99) replace
+winsorize hours, bottom(1) top(99) replace
+winsorize hours, top(99) replace
 ```
 
 
 ## Installation
 ```
-net install clean, from(https://github.com/matthieugomez/clean.ado/raw/master/)
+net install winsorize, from(https://github.com/matthieugomez/winsorize.ado/raw/master/)
 ```
 
 If you have a version of Stata < 13, you need to install it manually
@@ -21,6 +22,6 @@ If you have a version of Stata < 13, you need to install it manually
 3. Run
 
 	```
-	cap ado uninstall clean
-	net install clean, from("~/SOMEFOLDER")
+	cap ado uninstall winsorize
+	net install winsorize, from("~/SOMEFOLDER")
 	```
