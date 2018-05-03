@@ -1,6 +1,6 @@
 program winsorize, byable(recall)
 syntax varlist [if] [in] [aweight fweight] , ///
-[Percentiles(string) drop replace GENerate(string) by(varname)]
+[Percentiles(string) missing replace GENerate(string) by(varname)]
 
 if ("`weight'"!="") local wt [`weight'`exp']
 
@@ -100,7 +100,7 @@ foreach i of numlist 1/`bynum'{
         if  "`qmax'" != ""{
             qui count if `v' < `qmin' & `v' != . & `touseby'
             display as text "Bottom cutoff :  `:display %12.0g `qmin'' (`=r(N)' observation changed)"
-            if "`drop'"==""{
+            if "`missing'"==""{
                 qui replace `v' = `qmin' if `v' < `qmin' & `v' != . & `touseby'
             }
             else{
@@ -110,7 +110,7 @@ foreach i of numlist 1/`bynum'{
         if  "`qmin'" != ""{
             qui count if `v' > `qmax' & `v' != . & `touseby'
             display as text "Top cutoff :   `: display  %12.0g `qmax'' (`=r(N)' observation changed)"
-            if "`drop'"==""{
+            if "`missing'"==""{
                 qui replace `v' = `qmax' if `v' > `qmax' & `v' != . & `touseby'
             }
             else{

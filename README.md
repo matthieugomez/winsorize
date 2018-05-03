@@ -1,15 +1,15 @@
-The command `clean` windorizes observations based  5 times the interquartile
+The command `winsorize` winsorizes observations based  5 times the interquartile.
 
-Moreover, several options are available
-- with the option `p(pmin pmax)`, values that below and above the specified percentiles are top coded (rather than five times the interquartile). `pmin` or `pmax` can be `.` to mean no top coding.
-- with the option `drop`, outliers are  dropped (i.e. replaced by missing values) rather than top coded
+- With the option `replace`, variable is replaced by top coded one. With the option `gen`, a new variable is created
+- with the option `p(pmin pmax)`, outliers are defined as the values  below and above the specified percentiles,  than five times the interquartile. A `pmin` or `pmax` specified as `.` can be used to avoid top coding in one direction
+- with the option `missing`, outliers are replaced by missing values rather than top coded
 - with the option `by`, outliers are defined within groups defined by the variable `by`
 
 
 The overall syntax is 
 
 ```
-winsorize [varlist] [if] [in] [, p(pmin pmax) replace gen(varlist) drop by(varname)]
+winsorize [varlist] [if] [in] [, p(pmin pmax) replace gen(varlist) missing by(varname)]
 ```
 
 ```
