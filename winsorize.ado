@@ -4,7 +4,7 @@ syntax varlist [if] [in] [aweight fweight] , ///
 
 if ("`weight'"!="") local wt [`weight'`exp']
 
-if "`gen'" == ""{
+if "`generate'" == ""{
     if "`replace'" == ""{
         di as error "must specify either generate or replace option"
         exit 198
@@ -26,11 +26,11 @@ else{
 }
 }
 
-if "`p'" != ""{
-    local ct: word count `p'
+if "`percentiles'" != ""{
+    local ct: word count `percentiles'
     if `ct' == 2{
-        local pmin `: word 1 of `p''
-        local pmax `: word 2 of `p''
+        local pmin `: word 1 of `percentiles''
+        local pmax `: word 2 of `percentiles''
         if "`pmin'" == "."{
             local pmin  ""
         }
@@ -97,20 +97,20 @@ foreach i of numlist 1/`bynum'{
             display as error "qmin limit equals qmax"
             exit 4
         }
-        if  "`qmax'" != ""{
+        if  "`percentiles'" == "" | "`pmin'" != ""{
             qui count if `v' < `qmin' & `v' != . & `touseby'
             display as text "Bottom cutoff :  `:display %12.0g `qmin'' (`=r(N)' observation changed)"
-            if "`missing'"==""{
+            if "`missing'" == ""{
                 qui replace `v' = `qmin' if `v' < `qmin' & `v' != . & `touseby'
             }
             else{
                 qui replace `v' = . if `v' < `qmin' & `touseby'
             }
         }
-        if  "`qmin'" != ""{
+        if  "`percentiles'" == "" | "`pmax'" != ""{
             qui count if `v' > `qmax' & `v' != . & `touseby'
             display as text "Top cutoff :   `: display  %12.0g `qmax'' (`=r(N)' observation changed)"
-            if "`missing'"==""{
+            if "`missing'" == ""{
                 qui replace `v' = `qmax' if `v' > `qmax' & `v' != . & `touseby'
             }
             else{
