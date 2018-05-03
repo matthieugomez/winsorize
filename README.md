@@ -18,7 +18,6 @@ winsorize hours, replace
 winsorize hours, p(1 99) replace
 winsorize hours, p(. 99) replace
 winsorize hours, gen(newhours)
-
 ```
 
 
