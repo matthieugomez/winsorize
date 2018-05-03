@@ -1,6 +1,6 @@
 program winsorize, byable(recall)
-syntax varlist [if] [in] [aweight fweight] [, ///
-GENerate(string) replace drop by(varname) bottom(string) top(string) inter]
+syntax varlist [if] [in] [aweight fweight] , ///
+[Percentiles(string) drop replace GENerate(string) by(varname)]
 
 if ("`weight'"!="") local wt [`weight'`exp']
 
@@ -26,12 +26,29 @@ else{
 }
 }
 
-
+if "`p'" != ""{
+    local ct: word count `p'
+    if `ct' == 2{
+        local pmin `: word 1 of `p''
+        local pmax `: word 2 of `p''
+        if "`pmin'" == "."{
+            local pmin  ""
+        }
+        if "`pmax'" == "."{
+            local pmax ""
+        }
+    }
+    else{
+        di as error "The option p() must be of the form p(1 99), p(. 99), p(1 .)"
+        exit 4
+    }
+} 
 
 
 marksample touse
-tempname max min cutbottom cuttop cuttop2 cutbottom2
-if "`by'"~=""{
+tempname qmin qmax
+
+if "`by'"!=""{
     tempvar byvar
     tempname bylabel
     egen `byvar' = group(`by'), lname(`bylabel')
@@ -40,9 +57,6 @@ if "`by'"~=""{
     local bynum=r(r)
 }
 else local bynum 1
-
-
-
 
 
 foreach i of numlist 1/`bynum'{
@@ -54,69 +68,55 @@ foreach i of numlist 1/`bynum'{
     else local touseby `touse'
 
     foreach v of varlist `varlist'{
-        qui sum `v'  if `touseby'
-        scalar `max' = r(max)
-        scalar `min' = r(min)
-        if "`bottom'`top'" ~= "" { 
-            if "`bottom'" == ""{
-             _pctile `v' `wt' if `touseby', p(`top')
-             scalar `cuttop' = r(r1)
-         }
-         else if "`top'" == ""{
-            _pctile `v' `wt' if `touseby', p(`bottom')
-            scalar `cutbottom' = r(r1)
+        if "`pmin'`pmax'" != ""  { 
+            if "`pmin'" == ""{
+             _pctile `v' `wt' if `touseby', p(`pmax')
+             scalar `qmax' = r(r1)
+            }
+            else if "`pmax'" == ""{
+                _pctile `v' `wt' if `touseby', p(`pmin')
+                scalar `qmin' = r(r1)
+            }
+            else{
+                 _pctile `v' `wt' if `touseby', p(`pmin' `pmax')
+                 scalar `qmin' = r(r1)
+                 scalar `qmax' = r(r2)
+            }
         }
         else{
-            _pctile `v' `wt' if `touseby', p(`bottom' `top')
-            scalar `cutbottom' = r(r1)
-            scalar `cuttop' = r(r2)
+            _pctile `v' `wt' if `touseby', percentiles(25 50 75)
+            cap assert r(r3) > r(r1)
+            if _rc{
+                display as error "the interquartile of `v' is zero (p25 = p75 = `=r(r1)')"
+                exit
+            }
+            scalar `qmin' = r(r2) - 5 * (r(r3) - r(r1)) 
+            scalar `qmax' = r(r2) + 5 * (r(r3) - r(r1)) 
+        }
+        if "`qmin'" != "" & "`qmax'" != "" & "`qmin'" == "`qmax'" {
+            display as error "qmin limit equals qmax"
+            exit 4
+        }
+        if  "`qmax'" != ""{
+            qui count if `v' < `qmin' & `v' != . & `touseby'
+            display as text "Bottom cutoff :  `:display %12.0g `qmin'' (`=r(N)' observation changed)"
+            if "`drop'"==""{
+                qui replace `v' = `qmin' if `v' < `qmin' & `v' != . & `touseby'
+            }
+            else{
+                qui replace `v' = . if `v' < `qmin' & `touseby'
+            }
+        }
+        if  "`qmin'" != ""{
+            qui count if `v' > `qmax' & `v' != . & `touseby'
+            display as text "Top cutoff :   `: display  %12.0g `qmax'' (`=r(N)' observation changed)"
+            if "`drop'"==""{
+                qui replace `v' = `qmax' if `v' > `qmax' & `v' != . & `touseby'
+            }
+            else{
+                qui replace `v'=. if `v' > `qmax' & `touseby'
+            }
         }
     }
-    else if "`inter'" ~= ""{
-        _pctile `v' `wt' if `touseby', percentiles(25 50 75)
-        cap assert r(r3) > r(r1)
-        if _rc{
-            display as error "the interquartile of `v' is zero (p25 = p75  = `=r(r1)')"
-            exit
-        }
-        scalar `cutbottom' = r(r2) - 5 * (r(r3) - r(r1)) 
-        scalar `cuttop' = r(r2) + 5 * (r(r3) - r(r1)) 
-    }
-    else{
-        di as error "Use the option inter to use interquartile range or bottom() top() to use quantiles"
-    }
-    if "`cutbottom'" != "" & "`cuttop'" != "" & "`cutbottom'" == "`cuttop'" {
-        display as error "bottom limit equals the top limit"
-        exit 4
-    }
-
-
-    if "`bottom'" ~= "" | "`inter'" != ""{
-        qui count if `v' < `cutbottom' & `v' ~= . & `touseby'
-        local nbottom `=r(N)'
-        local cutbottom2 :  display %12.0g `=`cutbottom''
-        display as text "Bottom cutoff :  `cutbottom2' (`nbottom' observation changed)"
-        if "`drop'"==""{
-            qui replace `v' = `cutbottom' if `v' < `cutbottom' & `v' ~= . & `touseby'
-        }
-        else if "`drop'" ~= ""{
-            qui replace `v' = . if `v' < `cutbottom' & `touseby'
-        }
-    }
-
-    if "`top'" ~= "" | "`inter'" != ""{
-        qui count if `v' > `cuttop' & `v' ~= . & `touseby'
-        local ntop `=r(N)'
-        local cuttop2 : display  %12.0g `=`cuttop''
-        display as text "Top cutoff :  `cuttop2' (`ntop' observation changed)"
-
-        if "`drop'"==""{
-            qui replace `v' = `cuttop' if `v' > `cuttop' & `v' ~= . & `touseby'
-        }
-        else if "`drop'" ~= ""{
-            qui replace `v'=. if `v' > `cuttop' & `touseby'
-        }
-    }
-}
 }
 end
