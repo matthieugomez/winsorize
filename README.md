@@ -1,12 +1,15 @@
-The command `winsorize` windorizes observations based on 5 times the interquartile
-- with the option `bottom` and `top`, specified percentiles are used instead of five times the interquartile
-- with the option `drop`, outliers are replaced by missing values rather than top coded
-- Syntax is `winsorize [varlist] [if] [in] [, by(varname) bottom(number) top(number) replace drop]`
+The command `clean` windorizes observations based on bottom and top percentiles, or 5 times the interquartile
+- with the option `bottom` and `top`, values that below and above the specified percentiles are top coded
+- with the option `inter`, values that are more extreme than five times the interquartile are top coded
+- with the option `drop`, outliers are  dropped (i.e. replaced by missing values) rather than top coded
+- Syntax is `winsorize [varlist] [if] [in] [, by(varname) bottom(number) top(number) inter replace drop]`
 
 ```
 sysuse nlsw88.dta, clear
 winsorize hours, bottom(1) top(99) replace
 winsorize hours, top(99) replace
+winsorize hours, inter replace
+
 ```
 
 

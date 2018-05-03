@@ -7,7 +7,7 @@
 
 {marker syntax}{...}
 {title:Syntax}
-{cmd:winsorize} {varlist} {ifin} {cmd:,[} {opt  replace|generate(string) drop bottom(string) top(string)
+{cmd:winsorize} {varlist} {ifin} {cmd:,[} {opt  replace|generate(string) drop percentiles(string)
 by(varlist)}{cmd:]}
 
 

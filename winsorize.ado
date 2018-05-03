@@ -1,6 +1,6 @@
 program winsorize, byable(recall)
 syntax varlist [if] [in] [aweight fweight] [, ///
-GENerate(string) replace drop by(varname) bottom(string) top(string)]
+GENerate(string) replace drop by(varname) bottom(string) top(string) inter]
 
 if ("`weight'"!="") local wt [`weight'`exp']
 
@@ -14,11 +14,11 @@ else{
     local ct1: word count `varlist'
     local ct2: word count `generate'
     if `ct1' != `ct2' {
-     di as err "number of variables in varlist must equal" 
-     di as err "number of variables in generate(newvarlist)"
-     exit 198
- }
- else{
+       di as err "number of variables in varlist must equal" 
+       di as err "number of variables in generate(newvarlist)"
+       exit 198
+   }
+   else{
     forvalues i = 1/`ct1'{
         gen `:word `i' of `generate'' =  `:word `i' of `varlist''
     }
@@ -59,10 +59,10 @@ foreach i of numlist 1/`bynum'{
         scalar `min' = r(min)
         if "`bottom'`top'" ~= "" { 
             if "`bottom'" == ""{
-               _pctile `v' `wt' if `touseby', p(`top')
-               scalar `cuttop' = r(r1)
-           }
-           else if "`top'" == ""{
+             _pctile `v' `wt' if `touseby', p(`top')
+             scalar `cuttop' = r(r1)
+         }
+         else if "`top'" == ""{
             _pctile `v' `wt' if `touseby', p(`bottom')
             scalar `cutbottom' = r(r1)
         }
@@ -71,25 +71,27 @@ foreach i of numlist 1/`bynum'{
             scalar `cutbottom' = r(r1)
             scalar `cuttop' = r(r2)
         }
+    }
+    else if "`inter'" ~= ""{
+        _pctile `v' `wt' if `touseby', percentiles(25 50 75)
+        cap assert r(r3) > r(r1)
+        if _rc{
+            display as error "the interquartile of `v' is zero (p25 = p75  = `=r(r1)')"
+            exit
         }
-        else{
-            _pctile `v' `wt' if `touseby', percentiles(25 50 75)
-            cap assert r(r3) > r(r1)
-            if _rc{
-                display as error "the interquartile of `v' is zero (p25 = p75  = `=r(r1)')"
-                exit
-            }
-            scalar `cutbottom' = r(r2) - 5*(r(r3)-r(r1)) 
-            scalar `cuttop' = r(r2) + 5*(r(r3)-r(r1)) 
-        }
-
-        if "`cutbottom'" != "" & "`cuttop'" != "" & "`cutbottom'" == "`cuttop'" {
-            display as error "bottom limit equals the top limit"
-            exit 4
-        }
+        scalar `cutbottom' = r(r2) - 5 * (r(r3) - r(r1)) 
+        scalar `cuttop' = r(r2) + 5 * (r(r3) - r(r1)) 
+    }
+    else{
+        di as error "Use the option inter to use interquartile range or bottom() top() to use quantiles"
+    }
+    if "`cutbottom'" != "" & "`cuttop'" != "" & "`cutbottom'" == "`cuttop'" {
+        display as error "bottom limit equals the top limit"
+        exit 4
+    }
 
 
-    if "`bottom'" ~= ""{
+    if "`bottom'" ~= "" | "`inter'" != ""{
         qui count if `v' < `cutbottom' & `v' ~= . & `touseby'
         local nbottom `=r(N)'
         local cutbottom2 :  display %12.0g `=`cutbottom''
@@ -102,7 +104,7 @@ foreach i of numlist 1/`bynum'{
         }
     }
 
-    if "`top'" ~= ""{
+    if "`top'" ~= "" | "`inter'" != ""{
         qui count if `v' > `cuttop' & `v' ~= . & `touseby'
         local ntop `=r(N)'
         local cuttop2 : display  %12.0g `=`cuttop''
