@@ -98,7 +98,7 @@ foreach i of numlist 1/`bynum'{
             exit 4
         }
         if  "`percentiles'" == "" | "`pmin'" != ""{
-            qui count if `v' < `qmin' & `v' != . & `touseby'
+            qui count if `v' < `qmin' - 1e-6 & `v' != . & `touseby'
             display as text "Bottom cutoff :  `:display %12.0g `qmin'' (`=r(N)' observation changed)"
             if "`missing'" == ""{
                 qui replace `v' = `qmin' if `v' < `qmin' & `v' != . & `touseby'
@@ -108,7 +108,7 @@ foreach i of numlist 1/`bynum'{
             }
         }
         if  "`percentiles'" == "" | "`pmax'" != ""{
-            qui count if `v' > `qmax' & `v' != . & `touseby'
+            qui count if `v' > `qmax' + 1e-6 & `v' != . & `touseby'
             display as text "Top cutoff :   `: display  %12.0g `qmax'' (`=r(N)' observation changed)"
             if "`missing'" == ""{
                 qui replace `v' = `qmax' if `v' > `qmax' & `v' != . & `touseby'
