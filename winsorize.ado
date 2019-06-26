@@ -45,7 +45,7 @@ if "`percentiles'" != ""{
 } 
 
 
-marksample touse
+marksample touse, novarlist
 tempname qmin qmax
 
 if "`by'"!=""{
