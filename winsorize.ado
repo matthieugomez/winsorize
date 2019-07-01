@@ -59,7 +59,7 @@ if "`by'"!=""{
 else local bynum 1
 
 
-foreach i of numlist 1/`bynum'{
+forval i = 1/`bynum'{
     if `bynum'>1{
         tempvar touseby
         gen `touseby' = `touse' == 1 & `byvar' ==  `=`byvalmatrix'[`i',1]'
