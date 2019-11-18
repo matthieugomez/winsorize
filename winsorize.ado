@@ -44,7 +44,6 @@ if "`percentiles'" != ""{
     }
 } 
 
-
 tempname qmin qmax
 
 marksample touse
@@ -61,7 +60,12 @@ local start = `touse_first'
 while `start' <= `touse_last'{
     local end = `start' + `=`bylength'[`start']' - 1
     foreach v of varlist `varlist'{
-        if "`pmin'`pmax'" != ""  { 
+        if "`pmin'`pmax'" == ""  { 
+            _pctile `v' `wt' in `start'/`end', percentiles(25 50 75)
+            scalar `qmin' = r(r2) - 5 * (r(r3) - r(r1)) 
+            scalar `qmax' = r(r2) + 5 * (r(r3) - r(r1)) 
+        }
+        else{
             if "`pmin'" == ""{
                 _pctile `v' `wt' in `start'/`end', p(`pmax')
                 scalar `qmax' = r(r1)
@@ -74,17 +78,6 @@ while `start' <= `touse_last'{
                 _pctile `v' `wt' in `start'/`end', p(`pmin' `pmax')
                 scalar `qmin' = r(r1)
                 scalar `qmax' = r(r2)
-            }
-        }
-        else{
-            _pctile `v' `wt' in `start'/`end', percentiles(25 50 75)
-            scalar `qmin' = r(r2) - 5 * (r(r3) - r(r1)) 
-            scalar `qmax' = r(r2) + 5 * (r(r3) - r(r1)) 
-        }
-        if "`by'" == ""{
-            if "`qmin'" != "" & "`qmax'" != "" & "`qmin'" == "`qmax'" {
-                display as error "qmin limit equals qmax"
-                exit 4
             }
         }
         if  "`percentiles'" == "" | "`pmin'" != ""{
@@ -108,7 +101,7 @@ while `start' <= `touse_last'{
                 qui replace `v' = `qmax' in `start'/`end' if `v' > `qmax'
             }
             else{
-                qui replace `v'=. in `start'/`end' if `v' > `qmax'
+                qui replace `v'= . in `start'/`end' if `v' > `qmax'
             }
         }
     }
