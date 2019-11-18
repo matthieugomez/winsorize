@@ -1,8 +1,9 @@
 program winsorize, byable(recall)
 syntax varlist [if] [in] [aweight fweight] , ///
-[Percentiles(string) missing replace GENerate(string) by(varlist)]
+[Percentiles(string) trim missing replace GENerate(string) by(varlist)]
 
 if ("`weight'"!="") local wt [`weight'`exp']
+if ("`missing'"!="") local `trim' trim
 
 if "`generate'" == ""{
     if "`replace'" == ""{
@@ -31,15 +32,15 @@ if "`percentiles'" != ""{
     if `ct' == 2{
         local pmin `: word 1 of `percentiles''
         local pmax `: word 2 of `percentiles''
-        if "`pmin'" == "."{
+        if "`pmin'" == "." | "`pmin'" == "0" {
             local pmin  ""
         }
-        if "`pmax'" == "."{
+        if "`pmax'" == "." | "`pmax'" == "100" {
             local pmax ""
         }
     }
     else{
-        di as error "The option p() must be of the form p(1 99), p(. 99), p(1 .)"
+        di as error "The option p() must be of the form p(1 99)"
         exit 4
     }
 } 
@@ -85,7 +86,7 @@ while `start' <= `touse_last'{
                 qui count if `v' < `qmin' & `v' != .
                 display as text "Bottom cutoff :  `:display %12.0g `qmin'' (`=r(N)' observation changed)"
             }
-            if "`missing'" == ""{
+            if "`trim'" == ""{
                 qui replace `v' = `qmin' in `start'/`end' if `v' < `qmin'
             }
             else{
@@ -97,7 +98,7 @@ while `start' <= `touse_last'{
                 qui count if `v' > `qmax' & `v' != . 
                 display as text "Top cutoff :   `: display  %12.0g `qmax'' (`=r(N)' observation changed)"
             }
-            if "`missing'" == ""{
+            if "`trim'" == ""{
                 qui replace `v' = `qmax' in `start'/`end' if `v' > `qmax'
             }
             else{
