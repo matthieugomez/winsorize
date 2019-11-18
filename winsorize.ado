@@ -1,6 +1,6 @@
 program winsorize, byable(recall)
 syntax varlist [if] [in] [aweight fweight] , ///
-[Percentiles(string) missing replace GENerate(string) by(varname)]
+[Percentiles(string) missing replace GENerate(string) by(varlist)]
 
 if ("`weight'"!="") local wt [`weight'`exp']
 
@@ -14,16 +14,16 @@ else{
     local ct1: word count `varlist'
     local ct2: word count `generate'
     if `ct1' != `ct2' {
-       di as err "number of variables in varlist must equal" 
-       di as err "number of variables in generate(newvarlist)"
-       exit 198
-   }
-   else{
-    forvalues i = 1/`ct1'{
-        gen `:word `i' of `generate'' =  `:word `i' of `varlist''
+        di as err "number of variables in varlist must equal" 
+        di as err "number of variables in generate(newvarlist)"
+        exit 198
     }
-    local varlist `generate'
-}
+    else{
+        forvalues i = 1/`ct1'{
+            gen `:word `i' of `generate'' =  `:word `i' of `varlist''
+        }
+        local varlist `generate'
+    }
 }
 
 if "`percentiles'" != ""{
@@ -45,78 +45,73 @@ if "`percentiles'" != ""{
 } 
 
 
-marksample touse, novarlist
 tempname qmin qmax
 
-if "`by'"!=""{
-    tempvar byvar
-    tempname bylabel
-    egen `byvar' = group(`by'), lname(`bylabel')
-    tempname byvalmatrix
-    qui tab `byvar' if `touse'== 1, nofreq matrow(`byvalmatrix')
-    local bynum=r(r)
-}
-else local bynum 1
+marksample touse
+qui count if `touse'
+local samplesize=r(N)
+local touse_first=_N-`samplesize'+1
+local touse_last=_N
 
+tempvar bylength
+local type = cond(c(N)>c(maxlong), "double", "long")
+bys `touse' `by' : gen `type' `bylength' = _N 
 
-forval i = 1/`bynum'{
-    if `bynum'>1{
-        tempvar touseby
-        gen `touseby' = `touse' == 1 & `byvar' ==  `=`byvalmatrix'[`i',1]'
-        display in ye "`by' : `:label `bylabel' `i''"
-    }
-    else local touseby `touse'
-
+local start = `touse_first'
+while `start' <= `touse_last'{
+    local end = `start' + `=`bylength'[`start']' - 1
     foreach v of varlist `varlist'{
         if "`pmin'`pmax'" != ""  { 
             if "`pmin'" == ""{
-             _pctile `v' `wt' if `touseby', p(`pmax')
-             scalar `qmax' = r(r1)
+                _pctile `v' `wt' in `start'/`end', p(`pmax')
+                scalar `qmax' = r(r1)
             }
             else if "`pmax'" == ""{
-                _pctile `v' `wt' if `touseby', p(`pmin')
+                _pctile `v' `wt' in `start'/`end', p(`pmin')
                 scalar `qmin' = r(r1)
             }
             else{
-                 _pctile `v' `wt' if `touseby', p(`pmin' `pmax')
-                 scalar `qmin' = r(r1)
-                 scalar `qmax' = r(r2)
+                _pctile `v' `wt' in `start'/`end', p(`pmin' `pmax')
+                scalar `qmin' = r(r1)
+                scalar `qmax' = r(r2)
             }
         }
         else{
-            _pctile `v' `wt' if `touseby', percentiles(25 50 75)
-            cap assert r(r3) > r(r1)
-            if _rc{
-                display as error "the interquartile of `v' is zero (p25 = p75 = `=r(r1)')"
-                exit
-            }
+            _pctile `v' `wt' in `start'/`end', percentiles(25 50 75)
             scalar `qmin' = r(r2) - 5 * (r(r3) - r(r1)) 
             scalar `qmax' = r(r2) + 5 * (r(r3) - r(r1)) 
         }
-        if "`qmin'" != "" & "`qmax'" != "" & "`qmin'" == "`qmax'" {
-            display as error "qmin limit equals qmax"
-            exit 4
+        if "`by'" == ""{
+            if "`qmin'" != "" & "`qmax'" != "" & "`qmin'" == "`qmax'" {
+                display as error "qmin limit equals qmax"
+                exit 4
+            }
         }
         if  "`percentiles'" == "" | "`pmin'" != ""{
-            qui count if `v' < `qmin' - 1e-6 & `v' != . & `touseby'
-            display as text "Bottom cutoff :  `:display %12.0g `qmin'' (`=r(N)' observation changed)"
+            if "`by'" == ""{
+                qui count if `v' < `qmin' & `v' != .
+                display as text "Bottom cutoff :  `:display %12.0g `qmin'' (`=r(N)' observation changed)"
+            }
             if "`missing'" == ""{
-                qui replace `v' = `qmin' if `v' < `qmin' & `v' != . & `touseby'
+                qui replace `v' = `qmin' in `start'/`end' if `v' < `qmin'
             }
             else{
-                qui replace `v' = . if `v' < `qmin' & `touseby'
+                qui replace `v' = . in `start'/`end' if `v' < `qmin'
             }
         }
         if  "`percentiles'" == "" | "`pmax'" != ""{
-            qui count if `v' > `qmax' + 1e-6 & `v' != . & `touseby'
-            display as text "Top cutoff :   `: display  %12.0g `qmax'' (`=r(N)' observation changed)"
+            if "`by'" == ""{
+                qui count if `v' > `qmax' & `v' != . 
+                display as text "Top cutoff :   `: display  %12.0g `qmax'' (`=r(N)' observation changed)"
+            }
             if "`missing'" == ""{
-                qui replace `v' = `qmax' if `v' > `qmax' & `v' != . & `touseby'
+                qui replace `v' = `qmax' in `start'/`end' if `v' > `qmax'
             }
             else{
-                qui replace `v'=. if `v' > `qmax' & `touseby'
+                qui replace `v'=. in `start'/`end' if `v' > `qmax'
             }
         }
     }
+    local start = `end' + 1
 }
 end
