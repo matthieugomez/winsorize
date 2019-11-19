@@ -1,9 +1,12 @@
-program winsorize, byable(recall)
-syntax varlist [if] [in] [aweight fweight] , ///
+program winsorize, sortpreserve
+syntax varlist [if] [in] [aweight fweight], ///
 [Percentiles(string) trim missing replace GENerate(string) by(varlist)]
 
-if ("`weight'"!="") local wt [`weight'`exp']
+* compatibility
 if ("`missing'"!="") local `trim' trim
+
+
+if ("`weight'"!="") local wt [`weight'`exp']
 
 if "`generate'" == ""{
     if "`replace'" == ""{
@@ -47,20 +50,20 @@ if "`percentiles'" != ""{
 
 tempname qmin qmax
 
-marksample touse
-qui count if `touse'
-local samplesize=r(N)
-local touse_first=_N-`samplesize'+1
-local touse_last=_N
+marksample touse0, novarlist
+foreach v of varlist `varlist'{
+    tempvar touse
+    gen `touse' = `touse0' & !missing(`v')
 
-tempvar bylength
-local type = cond(c(N)>c(maxlong), "double", "long")
-bys `touse' `by' : gen `type' `bylength' = _N 
-
-local start = `touse_first'
-while `start' <= `touse_last'{
-    local end = `start' + `=`bylength'[`start']' - 1
-    foreach v of varlist `varlist'{
+    tempvar bylength
+    bys `touse' `by' : gen double `bylength' = _N 
+    qui count if `touse'
+    local samplesize=r(N)
+    local touse_first=_N-`samplesize'+1
+    local touse_last=_N
+    local start = `touse_first'
+    while `start' <= `touse_last'{
+        local end = `start' + `=`bylength'[`start']' - 1
         if "`pmin'`pmax'" == ""  { 
             _pctile `v' `wt' in `start'/`end', percentiles(25 50 75)
             scalar `qmin' = r(r2) - 5 * (r(r3) - r(r1)) 
@@ -82,10 +85,6 @@ while `start' <= `touse_last'{
             }
         }
         if  "`percentiles'" == "" | "`pmin'" != ""{
-            if "`by'" == ""{
-                qui count if `v' < `qmin' & `v' != .
-                display as text "Bottom cutoff :  `:display %12.0g `qmin'' (`=r(N)' observation changed)"
-            }
             if "`trim'" == ""{
                 qui replace `v' = `qmin' in `start'/`end' if `v' < `qmin'
             }
@@ -94,10 +93,6 @@ while `start' <= `touse_last'{
             }
         }
         if  "`percentiles'" == "" | "`pmax'" != ""{
-            if "`by'" == ""{
-                qui count if `v' > `qmax' & `v' != . 
-                display as text "Top cutoff :   `: display  %12.0g `qmax'' (`=r(N)' observation changed)"
-            }
             if "`trim'" == ""{
                 qui replace `v' = `qmax' in `start'/`end' if `v' > `qmax'
             }
@@ -105,7 +100,7 @@ while `start' <= `touse_last'{
                 qui replace `v'= . in `start'/`end' if `v' > `qmax'
             }
         }
+        local start = `end' + 1
     }
-    local start = `end' + 1
 }
 end
