@@ -3,7 +3,7 @@ syntax varlist [if] [in] [aweight fweight], ///
 [Percentiles(string) trim missing replace GENerate(string) by(varlist)]
 
 * compatibility
-if ("`missing'"!="") local `trim' trim
+if ("`missing'"!="") local trim trim
 
 
 if ("`weight'"!="") local wt [`weight'`exp']
