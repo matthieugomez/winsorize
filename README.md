@@ -22,7 +22,7 @@ winsorize hours, gen(newhours)
 
 ## Installation
 ```
-net install winsorize, from("https://raw.githubusercontent.com/matthieugomez/winsorize.ado/master/")
+net install winsorize, from("https://raw.githubusercontent.com/matthieugomez/winsorize.ado/main/")
 ```
 
 If you have a version of Stata < 13, you need to install it manually
